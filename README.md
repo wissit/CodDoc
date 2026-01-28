@@ -35,8 +35,8 @@ The system consists of several integrated components:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/coddoc-ai.git
-   cd coddoc-ai
+   git clone https://github.com/your-repo/coddoc.git
+   cd coddoc
    ```
 
 2. Set up environment variables:
