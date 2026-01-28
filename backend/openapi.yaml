@@ -1,0 +1,572 @@
+openapi: 3.0.3
+info:
+  title: CodDoc AI API
+  description: |
+    AI-Powered Code Review & Documentation Assistant API
+    
+    This API provides endpoints for analyzing code, generating documentation,
+    and managing code review history using LLM technology (Gemini by default).
+  version: 1.0.0
+  contact:
+    name: CodDoc AI Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.coddoc.example.com
+    description: Production server
+
+tags:
+  - name: Analysis
+    description: Code analysis and review operations
+  - name: Documentation
+    description: Documentation generation operations
+  - name: Reviews
+    description: Review history management
+  - name: Health
+    description: System health checks
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Returns the health status of the API
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /api/analyze:
+    post:
+      tags:
+        - Analysis
+      summary: Analyze code
+      description: |
+        Analyzes provided code and returns AI-generated review with:
+        - Code quality assessment
+        - Security vulnerabilities
+        - Performance suggestions
+        - Best practice recommendations
+      operationId: analyzeCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRequest'
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/document:
+    post:
+      tags:
+        - Documentation
+      summary: Generate documentation
+      description: |
+        Generates comprehensive documentation for the provided code including:
+        - Function/class descriptions
+        - Parameter documentation
+        - Return value documentation
+        - Usage examples
+      operationId: generateDocumentation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequest'
+      responses:
+        '200':
+          description: Documentation generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/reviews:
+    get:
+      tags:
+        - Reviews
+      summary: Get review history
+      description: Retrieves paginated list of previous code reviews
+      operationId: getReviews
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: language
+          in: query
+          description: Filter by programming language
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewsListResponse'
+
+  /api/reviews/{review_id}:
+    get:
+      tags:
+        - Reviews
+      summary: Get specific review
+      description: Retrieves a specific code review by ID
+      operationId: getReview
+      parameters:
+        - name: review_id
+          in: path
+          required: true
+          description: Review ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Review retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDetailResponse'
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Reviews
+      summary: Delete review
+      description: Deletes a specific code review
+      operationId: deleteReview
+      parameters:
+        - name: review_id
+          in: path
+          required: true
+          description: Review ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Review deleted successfully
+        '404':
+          description: Review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/config/llm-providers:
+    get:
+      tags:
+        - Configuration
+      summary: Get available LLM providers
+      description: Returns list of supported LLM providers
+      operationId: getLLMProviders
+      responses:
+        '200':
+          description: LLM providers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: gemini
+                        name:
+                          type: string
+                          example: Google Gemini
+                        default:
+                          type: boolean
+                        models:
+                          type: array
+                          items:
+                            type: string
+
+components:
+  schemas:
+    AnalyzeRequest:
+      type: object
+      required:
+        - code
+        - language
+      properties:
+        code:
+          type: string
+          description: The code to analyze
+          example: |
+            def calculate_sum(a, b):
+                return a + b
+        language:
+          type: string
+          description: Programming language
+          example: python
+          enum:
+            - python
+            - javascript
+            - typescript
+            - java
+            - go
+            - rust
+            - cpp
+            - csharp
+            - ruby
+            - php
+        filename:
+          type: string
+          description: Optional filename for context
+          example: utils.py
+        llm_provider:
+          type: string
+          description: LLM provider to use (defaults to gemini)
+          example: gemini
+          enum:
+            - gemini
+            - openai
+            - anthropic
+            - ollama
+
+    AnalyzeResponse:
+      type: object
+      properties:
+        review_id:
+          type: string
+          format: uuid
+          description: Unique review identifier
+        code:
+          type: string
+          description: The analyzed code
+        language:
+          type: string
+          description: Programming language
+        analysis:
+          type: object
+          properties:
+            summary:
+              type: string
+              description: Overall code quality summary
+            quality_score:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 10
+              description: Code quality score (0-10)
+            issues:
+              type: array
+              items:
+                $ref: '#/components/schemas/CodeIssue'
+            suggestions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Suggestion'
+            security_concerns:
+              type: array
+              items:
+                $ref: '#/components/schemas/SecurityConcern'
+        created_at:
+          type: string
+          format: date-time
+
+    CodeIssue:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum:
+            - critical
+            - high
+            - medium
+            - low
+            - info
+        category:
+          type: string
+          example: performance
+        description:
+          type: string
+        line_number:
+          type: integer
+          nullable: true
+        suggestion:
+          type: string
+
+    Suggestion:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        code_example:
+          type: string
+          nullable: true
+        priority:
+          type: string
+          enum:
+            - high
+            - medium
+            - low
+
+    SecurityConcern:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum:
+            - critical
+            - high
+            - medium
+            - low
+        title:
+          type: string
+        description:
+          type: string
+        recommendation:
+          type: string
+
+    DocumentRequest:
+      type: object
+      required:
+        - code
+        - language
+      properties:
+        code:
+          type: string
+          description: The code to document
+        language:
+          type: string
+          description: Programming language
+        filename:
+          type: string
+          description: Optional filename
+        doc_style:
+          type: string
+          description: Documentation style
+          enum:
+            - google
+            - numpy
+            - sphinx
+            - jsdoc
+            - javadoc
+          default: google
+        llm_provider:
+          type: string
+          description: LLM provider to use
+          default: gemini
+
+    DocumentResponse:
+      type: object
+      properties:
+        doc_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        language:
+          type: string
+        documentation:
+          type: object
+          properties:
+            overview:
+              type: string
+            functions:
+              type: array
+              items:
+                $ref: '#/components/schemas/FunctionDoc'
+            classes:
+              type: array
+              items:
+                $ref: '#/components/schemas/ClassDoc'
+            usage_examples:
+              type: array
+              items:
+                type: string
+        created_at:
+          type: string
+          format: date-time
+
+    FunctionDoc:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parameters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+              description:
+                type: string
+        returns:
+          type: object
+          properties:
+            type:
+              type: string
+            description:
+              type: string
+        examples:
+          type: array
+          items:
+            type: string
+
+    ClassDoc:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+              description:
+                type: string
+        methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/FunctionDoc'
+
+    ReviewsListResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewSummary'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            pages:
+              type: integer
+
+    ReviewSummary:
+      type: object
+      properties:
+        review_id:
+          type: string
+          format: uuid
+        language:
+          type: string
+        quality_score:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        filename:
+          type: string
+          nullable: true
+
+    ReviewDetailResponse:
+      type: object
+      properties:
+        review_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        language:
+          type: string
+        filename:
+          type: string
+          nullable: true
+        analysis:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        detail:
+          type: string
+          description: Detailed error information
+          nullable: true
